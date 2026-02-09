@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>smolagents-js demo</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 2rem; max-width: 640px; margin: auto; }
+  h1 { font-size: 1.2rem; color: #7f8fff; margin-bottom: 1.2rem; }
+  label { display: block; font-size: .75rem; color: #888; margin-top: .8rem; }
+  input, button { width: 100%; padding: .5rem .6rem; border: 1px solid #333; border-radius: 6px; background: #16213e; color: #e0e0e0; font-size: .85rem; margin-top: .2rem; }
+  input:focus { outline: none; border-color: #7f8fff; }
+  button { background: #7f8fff; color: #111; font-weight: 600; cursor: pointer; border: none; margin-top: 1rem; }
+  button:disabled { opacity: .4; cursor: default; }
+  #log { margin-top: 1rem; padding: .6rem; background: #0f0f1a; border-radius: 6px; font-family: 'SF Mono', Menlo, monospace; font-size: .78rem; line-height: 1.5; min-height: 60px; max-height: 320px; overflow-y: auto; white-space: pre-wrap; }
+  .think { color: #f0c040; } .act { color: #5ec4ff; } .observe { color: #a0d080; } .done { color: #7f8fff; font-weight: 600; } .err { color: #ff6b6b; }
+  #result { margin-top: 1rem; padding: .8rem; background: #1e2a4a; border-left: 3px solid #7f8fff; border-radius: 4px; display: none; font-size: .9rem; }
+</style>
+</head>
+<body>
+<h1>smolagents-js / basic demo</h1>
+
+<label>OpenRouter API Key</label>
+<input id="key" type="password" placeholder="sk-or-...">
+
+<label>Model</label>
+<input id="model" value="anthropic/claude-sonnet-4-5">
+
+<label>Task</label>
+<input id="task" value="What is the weather in Berlin?">
+
+<button id="run">Run</button>
+<div id="log"></div>
+<div id="result"></div>
+
+<script type="module">
+import { ToolCallingAgent, Model, tool } from '../src/index.js';
+
+const $ = id => document.getElementById(id);
+const log = $('log');
+
+function append(cls, text) {
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = text + '\n';
+  log.appendChild(span);
+  log.scrollTop = log.scrollHeight;
+}
+
+const getWeather = tool({
+  name: 'get_weather',
+  description: 'Get current weather for a given city.',
+  inputs: { city: { type: 'string', description: 'City name' } },
+  outputType: 'string',
+  execute: ({ city }) => `${city}: 12\u00B0C, partly cloudy`
+});
+
+$('run').addEventListener('click', async () => {
+  log.innerHTML = '';
+  $('result').style.display = 'none';
+  $('run').disabled = true;
+
+  try {
+    const model = new Model({ apiKey: $('key').value, id: $('model').value });
+    const agent = new ToolCallingAgent({ model, tools: [getWeather], maxSteps: 5 });
+
+    agent.on('think', e => append('think', `[step ${e.step}] thinking...`));
+    agent.on('act',   e => append('act',   `[step ${e.step}] act: ${e.toolName}(${JSON.stringify(e.args)})`));
+    agent.on('observe', e => append('observe', `[step ${e.step}] observe: ${e.result}`));
+    agent.on('error', e => append('err', `[step ${e.step}] error: ${e.error.message}`));
+    agent.on('done',  e => append('done', `done in ${e.totalSteps} step(s)`));
+
+    const answer = await agent.run($('task').value);
+    $('result').textContent = answer;
+    $('result').style.display = 'block';
+  } catch (err) {
+    append('err', `Fatal: ${err.message}`);
+  } finally {
+    $('run').disabled = false;
+  }
+});
+</script>
+</body>
+</html>
