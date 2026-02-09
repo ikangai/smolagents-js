@@ -1,0 +1,9 @@
+{
+  "name": "smolagents-js",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.js",
+  "description": "Compact JavaScript agent library inspired by smolagents",
+  "license": "MIT",
+  "keywords": ["agent", "llm", "tools", "openrouter", "smolagents"]
+}
