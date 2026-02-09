@@ -14,15 +14,24 @@ Build LLM-powered agents that think, use tools, write code, and orchestrate sub-
 
 ## Quick Start
 
-Serve the project with any static file server:
+### 1. Get an API Key
+
+Sign up at [openrouter.ai](https://openrouter.ai) and create a free API key at [openrouter.ai/keys](https://openrouter.ai/keys). Your key will look like `sk-or-v1-...`.
+
+OpenRouter gives you access to 200+ models (Claude, GPT, Llama, Gemini, etc.) through a single API. Many models have free tiers.
+
+### 2. Serve & Run
 
 ```bash
+# serve the project (any static server works)
 npx serve .
 # or
 python3 -m http.server 8000
 ```
 
-Open `examples/basic.html`, enter your [OpenRouter API key](https://openrouter.ai/keys), and hit Run.
+Open `examples/basic.html` in your browser, paste your API key, and hit **Run**.
+
+> **Note:** ESM imports require a local server. Opening HTML files directly via `file://` won't work.
 
 ## Usage
 
