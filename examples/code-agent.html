@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeAgent Demo - smolagents-js</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 24px; max-width: 720px; margin: auto; }
+  h1 { font-size: 1.3rem; margin-bottom: 16px; color: #a0c4ff; }
+  label { display: block; font-size: 0.8rem; color: #888; margin-top: 10px; }
+  input, textarea { width: 100%; padding: 8px 10px; border: 1px solid #333; border-radius: 6px; background: #16213e; color: #e0e0e0; font-size: 0.9rem; margin-top: 2px; }
+  textarea { resize: vertical; height: 52px; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  button { margin-top: 14px; padding: 10px 28px; border: none; border-radius: 6px; background: #0f3460; color: #fff; font-size: 0.95rem; cursor: pointer; }
+  button:hover { background: #1a4a7a; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  #log { margin-top: 18px; background: #0f0f23; border-radius: 8px; padding: 14px; font-size: 0.82rem; line-height: 1.5; max-height: 420px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+  .log-think { color: #ffc857; }
+  .log-code { color: #7ec8e3; background: #1a1a3a; display: block; padding: 8px; border-radius: 4px; margin: 4px 0; font-family: monospace; font-size: 0.8rem; }
+  .log-result { color: #a0e7a0; }
+  .log-error { color: #ff6b6b; }
+  #final { margin-top: 14px; padding: 14px; background: #162447; border-left: 4px solid #a0c4ff; border-radius: 6px; font-size: 1rem; display: none; }
+</style>
+</head>
+<body>
+<h1>CodeAgent Sandbox Demo</h1>
+<div class="row">
+  <div><label>OpenRouter API Key</label><input id="key" type="password" placeholder="sk-or-..."></div>
+  <div><label>Model ID</label><input id="model" value="anthropic/claude-sonnet-4-5"></div>
+</div>
+<label>Task</label>
+<textarea id="task">Calculate the first 10 Fibonacci numbers and return them as a comma-separated string</textarea>
+<button id="run" onclick="execute()">Run</button>
+<div id="log"></div>
+<div id="final"></div>
+
+<script type="module">
+import { CodeAgent, Model, tool } from '../src/index.js';
+
+const log = document.getElementById('log');
+const append = (cls, text) => {
+  const el = document.createElement('span');
+  el.className = cls;
+  el.textContent = text;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+};
+
+window.execute = async () => {
+  const apiKey = document.getElementById('key').value.trim();
+  const modelId = document.getElementById('model').value.trim();
+  const task = document.getElementById('task').value.trim();
+  if (!apiKey || !task) return alert('Please fill in the API key and task.');
+
+  const btn = document.getElementById('run');
+  const final = document.getElementById('final');
+  btn.disabled = true;
+  log.innerHTML = '';
+  final.style.display = 'none';
+
+  const formatResult = tool({
+    name: 'format_result',
+    description: 'Wraps text into a formatted result string. Use this to present the final answer.',
+    inputs: { text: { type: 'string', description: 'The text to format' } },
+    outputType: 'string',
+    execute: ({ text }) => `== Result: ${text} ==`
+  });
+
+  const model = new Model({ apiKey, id: modelId });
+  const agent = new CodeAgent({ model, tools: [formatResult], maxSteps: 6 });
+
+  agent.on('think', ({ step }) => append('log-think', `[Step ${step}] Thinking...\n`));
+  agent.on('act', ({ code }) => {
+    append('log-think', 'Generated code:\n');
+    append('log-code', code + '\n');
+  });
+  agent.on('observe', ({ result }) => append('log-result', `Result: ${result}\n\n`));
+  agent.on('error', ({ error }) => append('log-error', `Error: ${error.message}\n`));
+
+  try {
+    const answer = await agent.run(task);
+    final.textContent = answer;
+    final.style.display = 'block';
+    append('log-think', 'Done.\n');
+  } catch (e) {
+    append('log-error', `Fatal: ${e.message}\n`);
+  } finally {
+    agent.destroy();
+    btn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>
