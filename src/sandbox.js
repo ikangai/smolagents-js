@@ -98,6 +98,11 @@ export class Sandbox {
           { type: 'tool_result', callId: data.callId, result },
           '*'
         );
+      }).catch(err => {
+        this._iframe?.contentWindow?.postMessage(
+          { type: 'tool_result', callId: data.callId, result: `Error: ${err.message}` },
+          '*'
+        );
       });
     }
 

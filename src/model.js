@@ -28,6 +28,9 @@ export class Model {
     }
 
     const data = await response.json();
+    if (!data.choices?.[0]?.message) {
+      throw new Error(`OpenRouter API returned unexpected response: ${JSON.stringify(data).slice(0, 200)}`);
+    }
     return data.choices[0].message;
   }
 }

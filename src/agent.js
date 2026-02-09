@@ -94,10 +94,6 @@ export class Agent extends EventEmitter {
     return this.constructor.name;
   }
 
-  _getManagedAgentTools() {
-    return this.managedAgents.map(ma => ma.toTool());
-  }
-
   _getAllTools() {
     const tools = { ...this.tools };
     for (const ma of this.managedAgents) {

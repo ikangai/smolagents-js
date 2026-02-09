@@ -12,8 +12,7 @@ export class CodeAgent extends Agent {
   }
 
   buildSystemPrompt() {
-    const allTools = this._getAllTools();
-    return codeAgentSystemPrompt(Object.keys(allTools), this.managedAgents);
+    return codeAgentSystemPrompt(Object.keys(this.tools), this.managedAgents);
   }
 
   extractAction(response) {
