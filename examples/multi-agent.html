@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Orchestration Demo</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 24px; max-width: 720px; margin: auto; }
+  h1 { font-size: 1.3rem; margin-bottom: 16px; color: #a78bfa; }
+  label { display: block; font-size: 0.8rem; color: #888; margin-top: 10px; }
+  input, textarea { width: 100%; padding: 8px 10px; border: 1px solid #333; border-radius: 6px; background: #16213e; color: #e0e0e0; font-size: 0.9rem; margin-top: 2px; }
+  textarea { height: 48px; resize: vertical; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  button { margin-top: 14px; padding: 10px; width: 100%; border: none; border-radius: 6px; background: #7c3aed; color: #fff; font-size: 0.95rem; cursor: pointer; }
+  button:hover { background: #6d28d9; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #log { margin-top: 16px; background: #0f0f23; border-radius: 8px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 0.78rem; line-height: 1.6; max-height: 420px; overflow-y: auto; white-space: pre-wrap; }
+  .ev-think { color: #60a5fa; }
+  .ev-act { color: #fbbf24; }
+  .ev-observe { color: #34d399; }
+  .ev-done { color: #a78bfa; font-weight: bold; }
+  .ev-error { color: #f87171; }
+  .sub { padding-left: 20px; border-left: 2px solid #333; margin-left: 4px; }
+  #result { margin-top: 14px; padding: 12px; background: #1e1e3f; border-radius: 8px; display: none; }
+  #result h3 { font-size: 0.85rem; color: #a78bfa; margin-bottom: 6px; }
+  #result p { font-size: 0.9rem; line-height: 1.5; }
+</style>
+</head>
+<body>
+<h1>Multi-Agent Orchestration</h1>
+<div class="row">
+  <div><label>OpenRouter API Key</label><input id="key" type="password" placeholder="sk-or-..."></div>
+  <div><label>Model</label><input id="model" value="anthropic/claude-sonnet-4-5"></div>
+</div>
+<label>Task</label>
+<textarea id="task">Research the population of Tokyo and calculate how many football stadiums you'd need to seat everyone</textarea>
+<button id="run" onclick="go()">Run</button>
+<div id="log"></div>
+<div id="result"><h3>Final Result</h3><p id="answer"></p></div>
+
+<script type="module">
+import { ToolCallingAgent, ManagedAgent, Model, tool } from '../src/index.js';
+
+const log = document.getElementById('log');
+const addLog = (cls, text, sub) => {
+  const d = document.createElement('div');
+  d.className = cls + (sub ? ' sub' : '');
+  d.textContent = text;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+};
+
+const hookEvents = (agent, label, isSub) => {
+  agent.on('think', d => addLog('ev-think', `[${label}] Step ${d.step}: thinking...`, isSub));
+  agent.on('act',   d => addLog('ev-act', `[${label}] Step ${d.step}: calling ${d.toolName}(${JSON.stringify(d.args)})`, isSub));
+  agent.on('observe', d => addLog('ev-observe', `[${label}] Step ${d.step}: result = ${d.result.slice(0, 200)}`, isSub));
+  agent.on('done',  d => addLog('ev-done', `[${label}] Done in ${d.totalSteps} steps`, isSub));
+  agent.on('error', d => addLog('ev-error', `[${label}] Error: ${d.error.message}`, isSub));
+};
+
+window.go = async () => {
+  const apiKey = document.getElementById('key').value.trim();
+  const modelId = document.getElementById('model').value.trim();
+  const task = document.getElementById('task').value.trim();
+  if (!apiKey) return alert('Enter an API key');
+  const btn = document.getElementById('run');
+  btn.disabled = true;
+  log.innerHTML = '';
+  document.getElementById('result').style.display = 'none';
+
+  const model = () => new Model({ apiKey, id: modelId });
+
+  const webSearch = tool({ name: 'web_search', description: 'Search the web for information',
+    inputs: { query: { type: 'string', description: 'Search query' } },
+    execute: async ({ query }) => `Results for "${query}":\n1. Tokyo metro population: ~13.96 million (2024)\n2. Greater Tokyo Area: ~37.4 million\n3. Tokyo is the most populous city in Japan.`
+  });
+
+  const calculate = tool({ name: 'calculate', description: 'Evaluate a math expression and return the result',
+    inputs: { expression: { type: 'string', description: 'Math expression, e.g. "37400000 / 80000"' } },
+    execute: async ({ expression }) => String(Function('"use strict"; return (' + expression + ')')())
+  });
+
+  const researcher = new ToolCallingAgent({ model: model(), tools: [webSearch], maxSteps: 5 });
+  const calculator = new ToolCallingAgent({ model: model(), tools: [calculate], maxSteps: 5 });
+  hookEvents(researcher, 'researcher', true);
+  hookEvents(calculator, 'calculator', true);
+
+  const managedResearcher = new ManagedAgent({ agent: researcher, name: 'researcher',
+    description: 'An agent that can search the web for factual information. Give it a research question.' });
+  const managedCalculator = new ManagedAgent({ agent: calculator, name: 'calculator',
+    description: 'An agent that can evaluate math expressions. Give it a calculation task.' });
+
+  const manager = new ToolCallingAgent({ model: model(), managedAgents: [managedResearcher, managedCalculator], maxSteps: 8 });
+  hookEvents(manager, 'manager', false);
+
+  try {
+    addLog('ev-think', `Task: ${task}`, false);
+    const result = await manager.run(task);
+    document.getElementById('answer').textContent = result;
+    document.getElementById('result').style.display = 'block';
+  } catch (e) {
+    addLog('ev-error', `Fatal: ${e.message}`, false);
+  } finally {
+    btn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>
