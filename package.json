@@ -1,6 +1,6 @@
 {
   "name": "smolagents-js",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "exports": "./src/index.js",
   "description": "Compact JavaScript agent library inspired by smolagents",
