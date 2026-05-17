@@ -5,5 +5,11 @@
   "exports": "./src/index.js",
   "description": "Compact JavaScript agent library inspired by smolagents",
   "license": "MIT",
-  "keywords": ["agent", "llm", "tools", "openrouter", "smolagents"]
+  "keywords": ["agent", "llm", "tools", "openrouter", "smolagents"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test --test-reporter=spec test/*.test.js"
+  }
 }
