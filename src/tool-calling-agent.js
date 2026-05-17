@@ -13,23 +13,16 @@ export class ToolCallingAgent extends Agent {
   extractAction(response) {
     if (!response.tool_calls || response.tool_calls.length === 0) return null;
     const call = response.tool_calls[0];
-    return { toolName: call.function.name, rawArgs: call.function.arguments, callId: call.id, call };
+    const args = typeof call.function.arguments === 'string'
+      ? JSON.parse(call.function.arguments)
+      : call.function.arguments;
+    return { toolName: call.function.name, args, callId: call.id, call };
   }
 
-  async executeAction({ toolName, rawArgs }) {
+  async executeAction({ toolName, args }) {
     const allTools = this._getAllTools();
     const tool = allTools[toolName];
     if (!tool) throw new Error(`Unknown tool: ${toolName}`);
-    let args;
-    if (typeof rawArgs === 'string') {
-      try {
-        args = JSON.parse(rawArgs);
-      } catch (err) {
-        throw new Error(`Invalid JSON arguments for tool "${toolName}": ${err.message}`);
-      }
-    } else {
-      args = rawArgs;
-    }
     const result = await tool.execute(args);
     return typeof result === 'string' ? result : JSON.stringify(result);
   }
