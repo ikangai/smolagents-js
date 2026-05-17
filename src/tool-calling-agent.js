@@ -16,7 +16,7 @@ export class ToolCallingAgent extends Agent {
     const args = typeof call.function.arguments === 'string'
       ? JSON.parse(call.function.arguments)
       : call.function.arguments;
-    return { toolName: call.function.name, args, callId: call.id };
+    return { toolName: call.function.name, args, callId: call.id, call };
   }
 
   async executeAction({ toolName, args }) {
@@ -31,7 +31,7 @@ export class ToolCallingAgent extends Agent {
     this.history.push({
       role: 'assistant',
       content: response.content || null,
-      tool_calls: response.tool_calls
+      tool_calls: [action.call]
     });
     this.history.push({
       role: 'tool',
