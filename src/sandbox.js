@@ -32,6 +32,13 @@ export class Sandbox {
   async execute(code, toolStubs) {
     this.init();
 
+    const identRe = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+    for (const name of Object.keys(toolStubs)) {
+      if (!identRe.test(name)) {
+        throw new Error(`Sandbox: tool name "${name}" is not a valid JavaScript identifier (letters, digits, $, _; cannot start with a digit). CodeAgent calls tools as JS functions, so identifier-safe names are required.`);
+      }
+    }
+
     const id = ++this._messageId;
 
     const stubCode = Object.entries(toolStubs).map(([name, _]) =>
