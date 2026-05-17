@@ -281,9 +281,22 @@ Open in browser after starting a local server:
 - **`examples/multi-agent.html`** -- Manager delegates to researcher + calculator sub-agents
 - **`examples/code-agent.html`** -- CodeAgent writes and runs JavaScript in a sandbox
 
+## Testing
+
+The library ships with 135 unit + integration tests across 19 files using Node's built-in test runner -- zero dev dependencies.
+
+```bash
+npm test
+```
+
+Tests cover every source module, the ReAct loop in `Agent.run`, the parallel-tool-call dedup, malformed-JSON recovery, Sandbox identifier validation, and the manager→sub-agent path end-to-end. The iframe `Sandbox.execute` runtime itself is not Node-runnable; only its validation gate, lifecycle, and message routing are unit-tested via a stubbed DOM. GitHub Actions runs the suite on Node 20.x and 22.x (`.github/workflows/test.yml`).
+
+See [CHANGELOG.md](./CHANGELOG.md) for what changed between versions.
+
 ## Requirements
 
-- Modern browser with ES module support
+- **Runtime:** Modern browser with ES module support
+- **Development (running tests):** Node.js >= 20
 - [OpenRouter API key](https://openrouter.ai/keys)
 
 ## License
