@@ -3,8 +3,7 @@ import { toolCallingSystemPrompt } from './prompts.js';
 
 export class ToolCallingAgent extends Agent {
   buildSystemPrompt() {
-    const allTools = Object.values(this._getAllTools());
-    return toolCallingSystemPrompt(allTools, this.managedAgents);
+    return toolCallingSystemPrompt(Object.values(this.tools), this.managedAgents);
   }
 
   getToolSchemas() {
