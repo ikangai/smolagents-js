@@ -1,13 +1,10 @@
+const agentList = (mas, line) => mas.length
+  ? `\n\n${line}\n` + mas.map(a => `- ${a.name}: ${a.description}`).join('\n')
+  : '';
+
 export function toolCallingSystemPrompt(tools, managedAgents = []) {
-  const toolDescs = tools.map(t =>
-    `- ${t.name}: ${t.description}`
-  ).join('\n');
-
-  const agentDescs = managedAgents.length > 0
-    ? '\n\nYou can delegate tasks to these agents:\n' +
-      managedAgents.map(a => `- ${a.name}: ${a.description}`).join('\n')
-    : '';
-
+  const toolDescs = tools.map(t => `- ${t.name}: ${t.description}`).join('\n');
+  const agentDescs = agentList(managedAgents, 'You can delegate tasks to these agents:');
   return `You are a helpful assistant that solves tasks step by step.
 
 You have access to these tools:
@@ -19,11 +16,9 @@ Be concise. Prefer one tool call per step.`;
 }
 
 export function codeAgentSystemPrompt(toolNames, managedAgents = []) {
-  const agentDescs = managedAgents.length > 0
-    ? '\n\nYou can call these agents as functions:\n' +
-      managedAgents.map(a => `- await ${a.name}({ task: "..." })`).join('\n')
+  const agentDescs = managedAgents.length
+    ? '\n\nYou can call these agents as functions:\n' + managedAgents.map(a => `- await ${a.name}({ task: "..." })`).join('\n')
     : '';
-
   return `You are a helpful assistant that solves tasks by writing JavaScript code.
 
 You have these functions available:

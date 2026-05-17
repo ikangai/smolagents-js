@@ -1,6 +1,6 @@
 # smolagents-js
 
-A compact, browser-first JavaScript agent library inspired by [smolagents](https://github.com/huggingface/smolagents). Zero dependencies. ~480 lines of code.
+A compact, browser-first JavaScript agent library inspired by [smolagents](https://github.com/huggingface/smolagents). Zero dependencies. ~340 lines of code.
 
 Build LLM-powered agents that think, use tools, write code, and orchestrate sub-agents — all running in the browser via [OpenRouter](https://openrouter.ai).
 
@@ -257,16 +257,16 @@ Repeat until final answer or maxSteps reached
 
 ```
 src/
+  events.js             6 lines   EventEmitter
   index.js              7 lines   Public exports
-  events.js            20 lines   EventEmitter
-  tool.js              33 lines   Tool class
-  model.js             36 lines   OpenRouter client
-  prompts.js           37 lines   System prompts
-  managed-agent.js     36 lines   ManagedAgent
-  tool-calling-agent.js 43 lines  ToolCallingAgent
-  code-agent.js        43 lines   CodeAgent
-  agent.js            105 lines   Base Agent (ReAct loop)
-  sandbox.js          119 lines   iframe sandbox
+  model.js             19 lines   OpenRouter client
+  tool.js              22 lines   Tool class
+  managed-agent.js     23 lines   ManagedAgent
+  prompts.js           32 lines   System prompts
+  code-agent.js        36 lines   CodeAgent
+  tool-calling-agent.js 37 lines  ToolCallingAgent
+  agent.js             65 lines   Base Agent (ReAct loop)
+  sandbox.js           96 lines   iframe sandbox
 examples/
   basic.html                      Single agent demo
   multi-agent.html                Multi-agent demo

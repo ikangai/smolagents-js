@@ -5,10 +5,7 @@ import { codeAgentSystemPrompt } from './prompts.js';
 export class CodeAgent extends Agent {
   constructor(opts) {
     super(opts);
-    this.sandbox = new Sandbox({
-      timeout: opts.executionTimeout ?? 30000,
-      allowedGlobals: opts.allowedGlobals
-    });
+    this.sandbox = new Sandbox({ timeout: opts.executionTimeout ?? 30000, allowedGlobals: opts.allowedGlobals });
   }
 
   buildSystemPrompt() {
@@ -16,28 +13,24 @@ export class CodeAgent extends Agent {
   }
 
   extractAction(response) {
-    const content = response.content || '';
-    const match = content.match(/```(?:js|javascript)\n([\s\S]*?)```/);
-    if (!match) return null;
-    return { type: 'code', code: match[1].trim() };
+    const match = (response.content || '').match(/```(?:js|javascript)\n([\s\S]*?)```/);
+    return match ? { type: 'code', code: match[1].trim() } : null;
   }
 
   async executeAction({ code }) {
-    const allTools = this._getAllTools();
-    const toolStubs = {};
-    for (const [name, tool] of Object.entries(allTools)) {
-      toolStubs[name] = (args) => tool.execute(args);
-    }
-    const result = await this.sandbox.execute(code, toolStubs);
+    const stubs = Object.fromEntries(
+      Object.entries(this._getAllTools()).map(([n, t]) => [n, (a) => t.execute(a)])
+    );
+    const result = await this.sandbox.execute(code, stubs);
     return typeof result === 'string' ? result : JSON.stringify(result);
   }
 
   appendActionToHistory(response, action, result) {
-    this.history.push({ role: 'assistant', content: response.content });
-    this.history.push({ role: 'user', content: `[Code execution result]: ${result}` });
+    this.history.push(
+      { role: 'assistant', content: response.content },
+      { role: 'user', content: `[Code execution result]: ${result}` }
+    );
   }
 
-  destroy() {
-    this.sandbox.destroy();
-  }
+  destroy() { this.sandbox.destroy(); }
 }

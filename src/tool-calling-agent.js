@@ -11,43 +11,27 @@ export class ToolCallingAgent extends Agent {
   }
 
   extractAction(response) {
-    if (!response.tool_calls || response.tool_calls.length === 0) return null;
-    const call = response.tool_calls[0];
+    const call = response.tool_calls?.[0];
+    if (!call) return null;
     const raw = call.function.arguments;
     let args, parseError = null;
-    if (typeof raw === 'string') {
-      try {
-        args = JSON.parse(raw);
-      } catch (err) {
-        parseError = err;
-      }
-    } else {
-      args = raw;
-    }
+    try { args = typeof raw === 'string' ? JSON.parse(raw) : raw; }
+    catch (e) { parseError = e; }
     return { toolName: call.function.name, args, callId: call.id, call, parseError };
   }
 
   async executeAction({ toolName, args, parseError }) {
-    if (parseError) {
-      throw new Error(`Invalid JSON arguments for tool "${toolName}": ${parseError.message}`);
-    }
-    const allTools = this._getAllTools();
-    const tool = allTools[toolName];
+    if (parseError) throw new Error(`Invalid JSON arguments for tool "${toolName}": ${parseError.message}`);
+    const tool = this._getAllTools()[toolName];
     if (!tool) throw new Error(`Unknown tool: ${toolName}`);
     const result = await tool.execute(args);
     return typeof result === 'string' ? result : JSON.stringify(result);
   }
 
   appendActionToHistory(response, action, result) {
-    this.history.push({
-      role: 'assistant',
-      content: response.content || null,
-      tool_calls: [action.call]
-    });
-    this.history.push({
-      role: 'tool',
-      tool_call_id: action.callId,
-      content: result
-    });
+    this.history.push(
+      { role: 'assistant', content: response.content || null, tool_calls: [action.call] },
+      { role: 'tool', tool_call_id: action.callId, content: result }
+    );
   }
 }

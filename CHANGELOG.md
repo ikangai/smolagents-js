@@ -7,12 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Source compaction without API changes** — `src/` reduced from 496 to ~343
+  lines (-30.8%) by collapsing redundant decorative comments, single-line
+  abstract-method declarations, `Object.assign`/`Object.fromEntries` over
+  per-field assignment, and inline `?.` checks for short null-guards. No
+  public method signatures or event payloads changed; all prior tests still
+  pass.
+
+### Hardened
+
+- **Agent rejects concurrent `run()` calls.** Calling `agent.run()` while
+  another invocation is in flight now throws "Agent is already running"
+  instead of silently corrupting `this.history` and `this.currentStep`.
+- **`Sandbox._pending` uses a null-prototype object** (`Object.create(null)`)
+  so inherited prototype keys (`constructor`, `toString`, …) cannot collide
+  with legitimate per-message ids.
+- **`Sandbox.execute` interpolates tool names via `JSON.stringify`** in the
+  generated iframe code (defence-in-depth alongside the existing identifier
+  whitelist) — a name that somehow bypassed the identifier check still cannot
+  break out of its string literal.
+- **`Sandbox._onMessage` routes tool-call dispatch through `Promise.resolve()`**
+  so a synchronously-throwing tool stub posts back an `Error: …` message
+  instead of unhandled-rejecting the host.
+
 ### Added
 
-- **Test suite** — 135 unit and integration tests across 19 files in `test/`,
+- **Test suite** — 139 unit and integration tests across 20 files in `test/`,
   covering every source module (`EventEmitter`, `Tool`, `Model`, `prompts`,
   `Agent` base, `ToolCallingAgent`, `CodeAgent`, `ManagedAgent`, `Sandbox`,
-  `index`). Uses Node's built-in `node --test` runner — zero new dependencies.
+  `index`) plus a `hardening.test.js` for the concurrent-run guard and
+  null-prototype `_pending`. Uses Node's built-in `node --test` runner —
+  zero new dependencies.
 - **`npm test`** — `package.json` now defines a `test` script that runs the
   suite with the `spec` reporter for readable local output. Pinned `engines.node`
   to `>=20` (required for stable `node --test` + ESM behaviour).
